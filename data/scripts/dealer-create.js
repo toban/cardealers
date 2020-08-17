@@ -1,4 +1,4 @@
-db.createCollection("dealers", {
+db.createCollection("dealer", {
    validator: {
       $jsonSchema: {
          bsonType: "object",

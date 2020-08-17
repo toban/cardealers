@@ -1,0 +1,9 @@
+FROM openjdk:11
+COPY . /usr/src/cardealers-app/
+WORKDIR /usr/src/cardealers-app/
+
+RUN apt-get update && apt-get install -y maven
+
+RUN mvn package
+
+CMD ["java", "-tar" "./target/car-dealers-0.0.1-SNAPSHOT.jar"]

@@ -1,0 +1,38 @@
+{
+  bsonType: "object",
+  required: [ "dealer", "code", "make", "model", "kw", "year", "color", "price" ],
+  properties: {
+    dealer: {
+      bsonType: "string",
+      description: "must be a string (uuid) and is required"
+    },
+    code: {
+      bsonType: "string",
+      description: "must be a string and is required"
+    },
+    make: {
+      bsonType: "string",
+      description: "must be a string and is required"
+    },
+    model: {
+      bsonType: "string",
+      description: "must be a string and is required"
+    },
+    kw: {
+      bsonType: "int",
+      description: "must be an int and is required"
+    },
+    year: {
+      bsonType: "int",
+      description: "must be an int and is required"
+    },
+    color: {
+      bsonType: "string",
+      description: "must be a string and is required"
+    },
+    price: {
+      bsonType: "string",
+      description: "must be a decimal and is required"
+    },
+  }
+}
