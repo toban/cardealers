@@ -1,5 +1,6 @@
-package com.fig314.cardealers.listing;
+package com.fig314.cardealers.listing.parsing;
 
+import com.fig314.cardealers.listing.exception.ParsingFailed;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReaderHeaderAware;
 import com.opencsv.CSVReaderHeaderAwareBuilder;
@@ -14,10 +15,10 @@ import java.util.Map;
 
 public class ListingReads {
 
-    static public Flux<Listing> readCSVList(String csv) {
+    static public Flux<ListingCSVRow> readCSVList(String csv) {
         try {
             Reader reader = new StringReader(csv);
-            List<Listing> list = new ArrayList<>();
+            List<ListingCSVRow> list = new ArrayList<>();
             CSVReaderHeaderAwareBuilder csvReaderBuilder = (CSVReaderHeaderAwareBuilder) new CSVReaderHeaderAwareBuilder(reader)
                     .withCSVParser(new CSVParserBuilder().withSeparator(',').withQuoteChar('"').build());
 
@@ -27,9 +28,7 @@ public class ListingReads {
             Map<String, String> line = null;
 
             while ((line = csvReader.readMap()) != null) {
-                list.add(new Listing(
-                        null,
-                        null,
+                list.add(new ListingCSVRow(
                         line.get("code"),
                         line.get("make/model").split("/")[0],
                         line.get("make/model").split("/")[1],
@@ -44,7 +43,7 @@ public class ListingReads {
             csvReader.close();
             return Flux.fromIterable(list);
         } catch (Exception e) {
-            return Flux.error(e);
+            return Flux.error(new ParsingFailed(e));
         }
     }
 

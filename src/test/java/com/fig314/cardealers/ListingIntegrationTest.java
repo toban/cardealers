@@ -1,9 +1,9 @@
 package com.fig314.cardealers;
 
-import com.fig314.cardealers.listing.Dealer;
-import com.fig314.cardealers.listing.DealerRepository;
-import com.fig314.cardealers.listing.Listing;
-import com.fig314.cardealers.listing.ListingRepository;
+import com.fig314.cardealers.listing.data.Dealer;
+import com.fig314.cardealers.listing.repository.DealerRepository;
+import com.fig314.cardealers.listing.data.Listing;
+import com.fig314.cardealers.listing.repository.ListingRepository;
 import com.mongodb.reactivestreams.client.MongoClient;
 import lombok.SneakyThrows;
 import org.bson.Document;

@@ -1,6 +1,12 @@
 package com.fig314.cardealers.controller;
 
-import com.fig314.cardealers.listing.*;
+import com.fig314.cardealers.controller.dto.ListingRequest;
+import com.fig314.cardealers.controller.dto.ListingResponse;
+import com.fig314.cardealers.controller.dto.ListingTransform;
+import com.fig314.cardealers.listing.service.ListingService;
+import com.fig314.cardealers.listing.exception.EntityNotFound;
+import com.fig314.cardealers.listing.exception.ParsingFailed;
+import com.fig314.cardealers.listing.parsing.ListingReads;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -15,87 +21,60 @@ import java.util.List;
 public class ListingController {
 
     @Autowired
-    ListingRepository listingRepository;
-    @Autowired
-    ListingOperations listingOperations;
-    @Autowired
     ListingService listingService;
-    @Autowired
-    DealerRepository dealerRepository;
 
     @GetMapping("")
-    public Flux<Listing> getVehicleListings() {
-        return this.listingRepository.findAll();
+    public Flux<ListingResponse> getVehicleListings() {
+        return listingService.getVehicleListings().map(ListingTransform::responseFromListing);
     }
 
     @GetMapping("/dealer/{id}")
-    public Flux<Listing> getVehicleDealerListings(@PathVariable("id") String id) {
-        return this.listingRepository.findAllByDealer(id);
+    public Flux<ListingResponse> getVehicleListingsByDealer(@PathVariable("id") String dealerID) {
+        return listingService.getVehicleListingsByDealer(dealerID).map(ListingTransform::responseFromListing);
     }
 
     @PostMapping("/dealer/{id}")
     public Mono<Void> postVehicleDealerListing(
-            @PathVariable("id") String id,
-            @RequestBody List<Listing> listings,
+            @PathVariable("id") String dealerID,
+            @RequestBody List<ListingRequest> listings,
             ServerWebExchange swe) {
-        return this.dealerRepository.findById(id) // find dealer
-                .switchIfEmpty(Mono.error(new Exception("404")))
-                .flatMap(dealer -> {
-                    for (Listing listing : listings) {
-                        listing.setDealer(id);
-                    }
-
-                    return // if found
-                            this.listingOperations.upsertBulk(listings) // db write
-                                    .then(Mono.empty()); // always empty response;
-                })
+        return this.listingService.processSaveRequest(dealerID, ListingTransform.withDealerID(listings, dealerID))
                 .onErrorResume(exception -> { // on failure parse exception
-                    if (exception.getMessage().equals("404")) {
+                    if (exception instanceof EntityNotFound) {
                         swe.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
                     } else {
-                        swe.getResponse().setStatusCode(HttpStatus.BAD_REQUEST);
+                        swe.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
                     }
 
                     return Mono.empty();
-                })
-                .then(Mono.empty());
+                });
     }
 
     @PostMapping("/dealer/{id}/csv")
     public Mono<Void> postVehicleDealerListingCSV(
-            @PathVariable("id") String id,
+            @PathVariable("id") String dealerID,
             @RequestBody String listingsCSV,
             ServerWebExchange swe
     ) {
         return
-                this.dealerRepository.findById(id) // find dealer
-                        .switchIfEmpty(Mono.error(new Exception("404")))
-                        .then(ListingReads.readCSVList(listingsCSV).collectList()) // try parse csv
-                        .flatMap(listings -> { // db write
-                            for (Listing listing : listings) {
-                                listing.setDealer(id);
-                            }
-
-                            return this.listingOperations.upsertBulk(listings)
-                                    .then(Mono.empty());
-                        })
-                        .onErrorResume(exception -> { // on failure parse exception
-                            if (exception.getMessage().equals("404")) {
+                ListingReads.readCSVList(listingsCSV).collectList()
+                        .flatMap(listings -> listingService.processSaveRequest(dealerID, ListingTransform.withDealerIDFromCSVRow(listings, dealerID)))
+                        .onErrorResume(exception -> {
+                            if (exception instanceof EntityNotFound) {
                                 swe.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
-                            } else {
+                            } else if (exception instanceof ParsingFailed) {
                                 swe.getResponse().setStatusCode(HttpStatus.BAD_REQUEST);
+                            } else {
+                                swe.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
                             }
 
                             return Mono.empty();
-                        })
-                        .then(Mono.empty()); // always empty response
-
+                        });
     }
 
     @GetMapping("/search")
-    public Flux<Listing> getSearchListings(ServerWebExchange swe) {
-
-        return this.listingService.searchBy(swe.getRequest().getQueryParams().toSingleValueMap());
+    public Flux<ListingResponse> getSearchListings(ServerWebExchange swe) {
+        return this.listingService.searchBy(swe.getRequest().getQueryParams().toSingleValueMap()).map(ListingTransform::responseFromListing);
     }
 
 }

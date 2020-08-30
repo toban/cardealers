@@ -1,5 +1,6 @@
-package com.fig314.cardealers.listing;
+package com.fig314.cardealers.listing.repository;
 
+import com.fig314.cardealers.listing.data.Listing;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.FindAndReplaceOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
